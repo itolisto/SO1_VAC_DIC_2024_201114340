@@ -1,0 +1,55 @@
+services:
+  backend:
+    image: itolisto/monitorapi
+    ports:
+      - "8080:8080"
+    environment:
+      DB_HOST: ldb
+      DB_NAME: monitor
+      DB_USER: monitor
+      DB_PASSWORD: monitor
+      DB_PORT: 3306
+    container_name: 'lnode'
+    restart: always
+    depends_on: 
+      - data
+
+  data:
+    image: itolisto/monitordb
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: monitor
+      MYSQL_DATABASE: monitor
+      MYSQL_USER: monitor
+      MYSQL_PASSWORD: monitor
+    volumes:
+      - mysql:/var/lib/mysql      
+    container_name: 'ldb'
+    restart: always
+
+  grafana:
+    image: grafana/grafana-enterprise
+    container_name: grafana
+    restart: unless-stopped
+    # if you are running as root then set it to 0
+    # else find the right id with the id -u command
+    user: '0'
+    environment:
+      - GF_SERVER_ROOT_URL=http://my.grafana.server/
+      - GF_INSTALL_PLUGINS=grafana-clock-panel
+      - GF_SERVER_HTTP_PORT=3030
+      - http_port=3030
+      - GF_SECURITY_ADMIN_PASSWORD=monitor
+      - GF_SECURITY_ADMIN_USER=monitor
+    ports:
+      - '3030:3030'
+    # adding the mount volume point which we create earlier
+    volumes:
+      - grafana-storage:/var/lib/grafana
+    depends_on:
+      - backend
+      
+volumes:
+  mysql:
+  grafana-storage: {}
