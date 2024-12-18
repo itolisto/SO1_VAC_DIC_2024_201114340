@@ -1,0 +1,11 @@
+services:
+  monitor:
+    image: itolisto/agent
+    ports:
+      - "3000:3000"
+    privileged: true
+    environment:
+      HOST: "34.67.155.252" # always copy the IP address from the monitoringapi vm in GCP
+    volumes:
+      - /proc:/proc
+    restart: always

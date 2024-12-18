@@ -96,7 +96,7 @@ sudo apt-get install linux-headers-generic -y
 sudo apt-get install make
 sudo apt-get install gcc -y
 sudo apt install --reinstall gcc-12 -y
-cd ./Proyecto1/agent/cpu
+cd ./SO1_VAC_DIC_2024_201114340/Proyecto1/agent/cpu
 make all
 sudo insmod cpu_201114340.ko
 cd ../ram
