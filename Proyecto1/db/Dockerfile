@@ -1,8 +1,7 @@
 FROM mysql:latest
 
-COPY ./init.sql /docker-entrypoint-initdb.d/
+COPY ./init.sql /tmp
 
 EXPOSE 3306
 
-# The official MySQL image already has a default CMD and ENTRYPOINT, 
-# so you typically do not need to specify them again.
+CMD [ "mysqld", "--init-file=/tmp/init.sql" ]
