@@ -26,8 +26,8 @@ var client = mysqlx.getClient(
 
 app.listen(8080, () => { console.log(`app listening on port 8080, host:${process.env.DB_HOST}`) });
 
-app.get('/health', (req, res) => {
-    res.send('{"status": "ok"}')
+app.get('/', (req, res) => {
+    res.send('Bishitus bebe')
 })
 
 app.post('/ram', (req, res, next) => {
@@ -50,6 +50,8 @@ app.post('/ram', (req, res, next) => {
 
       session.sql('INSERT IGNORE INTO vm (ip) VALUES (?)').bind(ipAddress).execute()
 
+      console.log(body.total_ram + " " + body.free_ram + " " + body.used_ram + " " + body.percentage_used + " " + ipAddress)
+     
       session
         .sql('INSERT INTO ram (total_ram, free_ram, used_ram, percentage_used, ip) VALUES (?, ?, ?, ?, ?)')
         .bind(body.total_ram, body.free_ram, body.used_ram, body.percentage_used, ipAddress)
@@ -95,6 +97,9 @@ app.post('/cpu', (req, res, next) => {
 
   console.log(`inserting cpu`)
 
+    let free = 100 - parseFloat(body.percentage_used)
+    if(free == undefined) free = 100.0 - parseFloat(body.percentage_used)
+    
 
     client
     .getSession()
@@ -104,8 +109,8 @@ app.post('/cpu', (req, res, next) => {
       session.sql('INSERT IGNORE INTO vm (ip) VALUES (?)').bind(ipAddress).execute()
 
       session
-        .sql('INSERT IGNORE INTO cpu (percentage_used, ip) VALUES (?, ?)')
-        .bind(body.percentage_used, ipAddress)
+        .sql('INSERT IGNORE INTO cpu (percentage_used, free, ip) VALUES (?, ?, ?)')
+        .bind(body.percentage_used, free, ipAddress)
         .execute()
         .catch(function (err) {
           next(err)  // expressjs error handling
@@ -125,10 +130,10 @@ app.post('/cpu', (req, res, next) => {
       console.log(`inserting processes`)     
 
       body.tasks?.forEach(task => {
-        console.log(task.pid + task.name + task.state + task.puser + task.ram + task.father + ipAddress)
+        console.log(task.pid + " " + task.name + " " + task.state + " " + task.user + " " + task.ram + " " + task.father + " " + ipAddress)
         session
           .sql('INSERT INTO process (pid, name, state, puser, ram, father, ip) VALUES (?, ?, ?, ?, ?, ?, ?)')
-          .bind(task.pid, task.name, task.state, task.puser, task.ram, task.father, ipAddress)
+          .bind(task.pid, task.name, task.state, task.user, task.ram, task.father, ipAddress)
           .execute()
           .catch(function (err) {
             next(err)  // expressjs error handling
