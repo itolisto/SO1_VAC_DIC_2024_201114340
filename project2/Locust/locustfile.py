@@ -13,7 +13,7 @@ class PostCoursesTest(HttpUser):
       response = self.client.post("http://localhost:8000/course", json=courses.pop(), name="/coursePost")
       print(response.text)
       print(response.status_code)
-      time.sleep(random.choice([1,2]))
+      time.sleep(0.3)
 
   def on_start(self):
     print("task started")
