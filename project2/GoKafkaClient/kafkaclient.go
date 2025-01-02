@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -13,17 +14,22 @@ import (
 	"syscall"
 
 	"github.com/IBM/sarama"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // Sarama configuration options
 var (
-	brokers  = fmt.Sprintf("%s:%s", os.Getenv("KAFKA_SERVER_HOST"), os.Getenv("KAFKA_SERVER_PORT")) // "127.0.0.1:9092" kafkaBrokerUrl
-	version  = ""
-	group    = "sopes1" // just an ID for the consumer group
-	topics   = "assignment"
-	assignor = ""
-	oldest   = true
-	verbose  = false
+	brokers              = fmt.Sprintf("%s:%s", os.Getenv("KAFKA_SERVER_HOST"), os.Getenv("KAFKA_SERVER_PORT")) // "127.0.0.1:9092" kafkaBrokerUrl
+	MONGODB_URI          = fmt.Sprintf("mongodb://%s:%s", os.Getenv("MONGO_SERVER_HOST"), os.Getenv("MONGO_SERVER_PORT"))
+	version              = ""
+	group                = "sopes1" // just an ID for the consumer group
+	topics               = "assignment"
+	assignor             = ""
+	oldest               = true
+	verbose              = false
+	assignmentCollection mongo.Collection
+	ctx                  = context.TODO()
 )
 
 func init() {
@@ -37,9 +43,32 @@ func init() {
 	flag.Parse()
 }
 
+type Course struct {
+	Curso    string
+	Facultad string
+	Carrera  string
+	Region   string
+}
+
 func main() {
-	keepRunning := true
+	log.Println("Starting a new Mongo client")
+	mongoClient, err := mongo.Connect(context.TODO(), options.Client().
+		ApplyURI(MONGODB_URI))
+
+	if err != nil {
+		panic(err)
+	}
+
+	assignmentCollection = *mongoClient.Database("Course").Collection("Assignments")
+
+	defer func() {
+		if err := mongoClient.Disconnect(context.TODO()); err != nil {
+			panic(err)
+		}
+	}()
+
 	log.Println("Starting a new Sarama consumer")
+	keepRunning := true
 
 	if verbose {
 		sarama.Logger = log.New(os.Stdout, "[sarama] ", log.LstdFlags)
@@ -170,14 +199,24 @@ func (consumer *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 	// The `ConsumeClaim` itself is called within a goroutine, see:
 	// https://github.com/IBM/sarama/blob/main/consumer_group.go#L27-L29
 	for {
+		var course Course
 		select {
 		case message, ok := <-claim.Messages():
 			if !ok {
 				log.Printf("message channel was closed")
 				return nil
 			}
+
 			log.Printf("Message claimed: value = %s, timestamp = %v, topic = %s", string(message.Value), message.Timestamp, message.Topic)
 			session.MarkMessage(message, "")
+
+			err := json.Unmarshal([]byte(message.Value), &course)
+			if err != nil {
+				fmt.Println("Error unmarshalling Json to struct:", err)
+			} else {
+				assignmentCollection.InsertOne(ctx, course)
+			}
+
 		// Should return when `session.Context()` is done.
 		// If not, will raise `ErrRebalanceInProgress` or `read tcp <ip>:<port>: i/o timeout` when kafka rebalance. see:
 		// https://github.com/IBM/sarama/issues/1192
