@@ -128,15 +128,29 @@ curl http://localhost:8020/course \
 
 #### Set up Redis Client in Rust REST API server
 
+1. First we are going to create a Redis database Docker container using the Bitmani's image, see [here](https://hub.docker.com/r/bitnami/redis) for info on how to set it up. Basically, assuming you have docker desktop installed and running, run bellow command(6379 is default port). optionally you can use the official [redis alpine version](https://github.com/docker-library/docs/tree/master/redis) with the image `redis:8.0-M02-alpine3.20`, the volume would be `-v /docker/host/dir:/data`
+```bash
+docker run --rm -d -it \
+    --name=redis-server \
+    -v redis-persistence:/bitnami/redis/data \
+    -e REDIS_PASSWORD=course -e REDIS_MASTER_PASSWORD=course   \
+    -p 6379:6379 \
+    bitnami/redis:latest
+```
+
+2. Now we will set up the Redis client using [actix-extras/actix-session](https://github.com/actix/actix-extras) rust library. In the root directory of your server run `cargo add actix-session --features=redis-session`
+
 ```bash
 GRPC_CLIENT_PORT=8000 
-GRPC_CLIENT_HOST=localhost
+GRPC_CLIENT_HOST=<kubernetesObjectTag>
 
 GRPC_SERVER_PORT=8010
 GRPC_SERVER_HOST=<kubernetesObjectTag>
 
 RUST_SERVER_PORT=8020
 RUST_SERVER_HOST=<kubernetesObjectTag>
+RUST_REDIS_PORT=6379
+RUST_REDIS_HOST=<kubernetesObjectTag>
 ```
 
 ```bash
@@ -145,5 +159,8 @@ export GRPC_CLIENT_HOST=localhost \
 export GRPC_SERVER_PORT=8010 \
 export GRPC_SERVER_HOST=localhost \
 export RUST_SERVER_PORT=8020 \
-export RUST_SERVER_HOST=localhost
+export RUST_SERVER_HOST=localhost \
+export RUST_REDIS_PORT=6379 \
+export RUST_REDIS_HOST=localhost
 ```
+
