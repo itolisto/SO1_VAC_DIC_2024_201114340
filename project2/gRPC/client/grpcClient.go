@@ -1,11 +1,14 @@
 package main
 
 import (
+    "encoding/json"
     "context"
     "net/http"
     "fmt"
-    "os"
+    "bytes"
     "log"
+    "os"
+    "io"
 
     "github.com/gin-gonic/gin"
 
@@ -24,24 +27,26 @@ type courserecord struct {
 
 var (
     opts = []grpc.DialOption{ grpc.WithTransportCredentials(insecure.NewCredentials()) }
-    serverUrl = fmt.Sprintf("%s:%s", os.Getenv("GRPC_SERVER_HOST"), os.Getenv("GRPC_SERVER_PORT"))
+    grpcServerUrl = fmt.Sprintf("%s:%s", os.Getenv("GRPC_SERVER_HOST"), os.Getenv("GRPC_SERVER_PORT"))
     ctx = context.Background()
+    rustServerUrl = fmt.Sprintf("http://%s:%s", os.Getenv("RUST_SERVER_HOST"), os.Getenv("RUST_SERVER_PORT"))
 )
 
 func allGood(c *gin.Context) {
-    c.String(http.StatusOK, "Cours REST API Server Ready")
+    c.String(http.StatusOK, "Course REST API Server Ready")
 }
 
 func postCourse(c *gin.Context) {
     var courseRecord courserecord
 
+    
     if courseDataError := c.BindJSON(&courseRecord); courseDataError != nil {
         fmt.Println(courseDataError)
         c.String(http.StatusBadRequest, courseDataError.Error())
         return
     }
 
-    conn, connErr := grpc.NewClient(serverUrl, opts...)
+    conn, connErr := grpc.NewClient(grpcServerUrl, opts...)
 
     if connErr != nil {
         log.Fatalf("fail to dial: %v", connErr)
@@ -53,7 +58,7 @@ func postCourse(c *gin.Context) {
     
     client := pb.NewCourseClient(conn)
 
-    log.Println("gRPC client connected to server", serverUrl)
+    log.Println("gRPC client connected to server", grpcServerUrl)
 
    
 
@@ -65,12 +70,39 @@ func postCourse(c *gin.Context) {
     })
 
     if responseErr != nil {
-        log.Fatalf("client.ListFeatures failed: %v", responseErr)
+        log.Fatalf("gRPC post failed: %v", responseErr)
         c.String(http.StatusBadRequest, responseErr.Error())
         return
     }
 
-    c.String(http.StatusOK, response.Response)
+    courseJson, courseJsonErr := json.Marshal(courseRecord)
+
+    if courseJsonErr != nil {
+        log.Fatalf("parsing back to Json failed: %v", courseJsonErr)
+        c.String(http.StatusBadRequest, courseJsonErr.Error())
+        return
+    }
+
+    rustResponse, rustErr := http.Post(fmt.Sprintf("%s/course", rustServerUrl), "application/json", bytes.NewBuffer(courseJson) )
+
+    if rustErr != nil {
+        log.Fatalf("post to Rust server failed: %v", rustErr)
+        c.String(http.StatusBadRequest, rustErr.Error())
+        return
+    }
+
+    defer rustResponse.Body.Close()
+    rustBody, rustBodyErr := io.ReadAll(rustResponse.Body)
+
+    if rustBodyErr != nil {
+        log.Fatalf("Rust response body failure: %v", rustBodyErr)
+        c.String(http.StatusBadRequest, rustBodyErr.Error())
+        return
+    }
+
+    success := fmt.Sprintf("gRPC server response: %s, Rust REST server response: %s", response.Response, string(rustBody))
+
+    c.String(http.StatusOK, success)
 
 }
 
