@@ -10,7 +10,7 @@ transmitted is collegue students notes, so we will display those notes by connec
 
 # Instructions
 
-## Create Grades Sample Json
+## Create Courses Sample Json
 
 1. First we need to generate data in the following format using JSON, we will generate a 'pool' of fake entries using Python in `generator.py`
 
@@ -30,7 +30,7 @@ we should use the `venv` application to create these environments.
 
 4. Then as indicated [here](https://docs.python.org/3/library/venv.html#how-venvs-work) activate your venv, since I'm using git bash in Windows I just run in CLI `source venv/scripts/activate`, if you take a look this is a combination of the bash/zsh and cmd.exe/PowerShell commands
 
-5. We wrote the grades generator file using "json", "random" and "io" libraries. After you create this Python file "gradesJsonGenerator.py" run it using `python gradesJsonGenerator.py`, you will get a json with sample grades
+5. We wrote the courses generator file using "json", "random" and "io" libraries. After you create this Python file "gradesJsonGenerator.py" run it using `python gradesJsonGenerator.py`, you will get a json with sample grades
 
 ## Set up Locust
 
@@ -42,9 +42,9 @@ we should use the `venv` application to create these environments.
 
 3. Now you can check access the Locust server to see the requests that are being made using the [web interface](https://docs.locust.io/en/stable/quickstart.html#locust-s-web-interface) running in `http://localhost:8089`
 
-## Set up Routes
+## Set up Deployments
 
-### Route 1, Golang gRCP client and server
+### Golang gRCP client and server along Rust Server/Redis client(First Deployment)
 Basically both are server but the one in the middle is both, client and REST API server. The one that will receive requests from the ingress controller is both. It is an REST API server because it has an 'endpoint' that recieves the grade from Locust that is sending posts request to the it and is a client because it then forwards the information to the following container which is another gRCP server but this one is connected to the Mongo database. We will be using [gRPC's official documentation](https://grpc.io/docs/languages/go/basics/) to create a service in Golang
 
 #### Create REST API-gRPC Client Server
@@ -55,6 +55,12 @@ We'll follow [official documentation]{https://go.dev/doc/tutorial/web-service-gi
 2. Create the Endpoint following the documentation, our REST API server is inside gRPC/client/grpcClient.go
 
 3. Run `go get .` to add gin module as a dependency to our module.
+
+3. Set environment variables
+```bash
+export GRPC_CLIENT_PORT=8000 \
+export GRPC_CLIENT_HOST=localhost
+```
 
 4. Run the server with `go run .`
 
@@ -80,10 +86,64 @@ protoc --go_out=. --go_opt=paths=source_relative \
 
 9. Now we just follow the gRPC documentation to create the client. My implementation is in "gRPC/client/grpcClient.go"
 
-### Create gRPC Server
-This node will be communicating with 
+10. We will add some logic to do an http post request to a Rust REST API later
 
+#### Create gRPC Server
+This node is an gRPC server that receives the notes and forwards them to a Kafka queue. First we are just going to implement gRPC server following the documentation previously mentioned. I created the implementation file in "gRPC/server/server.go"
 
-GRPC_SERVER_PORT = 8010
-GRPC_SERVER_HOST = <kubernetesObjectTag>
+If you want to test these servers, and clients run them from a different CLI each with `go run .` from the directory where each file lives and again you can run the curl command above. You also have to define two environment variables. If you are on bash or zshell you just run the following commands to create a temporary env variable
+```bash
+export GRPC_SERVER_PORT=8010 \
+echo $GRPC_SERVER_PORT \
+GRPC_SERVER_HOST=localhost \
+echo $GRPC_SERVER_HOST
+```
+We will come back to add logic to be able to send the courses info a Kafka queue
 
+#### Rust Server/Redis Client
+This node will be receiving courses using a Rust REST API
+
+1. Since I'm using Windows I went over [this](https://learn.microsoft.com/en-us/windows/dev-environment/rust/overview#the-pieces-of-the-rust-development-toolsetecosystem) documentation to get familiar with Rust terms and [this](https://learn.microsoft.com/en-us/windows/dev-environment/rust/setup) documentation to set up development environment for Rust, basically in windows you have to install C++ build tools, then you'll be able to install rust from their website. 
+
+2. I'm going to use "actix web" framework to create a web server with a REST API following their [official documentation](https://actix.rs/docs/getting-started/) and to use [JSON](https://actix.rs/docs/extractors#json)
+
+3. Create the environment variables using `export`
+```bash
+export RUST_SERVER_HOST=localhost \
+export RUST_SERVER_PORT=8020
+```
+
+4. Run the server `cargo run`
+
+5. You can test it with the command:
+```bash
+curl http://localhost:8020/course \
+    --include \
+    --header "Content-Type: application/json" \
+    --request "POST" \
+    --data '{"curso": "ANP", "facultad": "Ingenieria", "carrera": "Arte", "region": "METROPOLITANA"}'
+```
+
+6. Now in the gRPC client on the previous section add http post request to this server
+
+#### Set up Redis Client in Rust REST API server
+
+```bash
+GRPC_CLIENT_PORT=8000 
+GRPC_CLIENT_HOST=localhost
+
+GRPC_SERVER_PORT=8010
+GRPC_SERVER_HOST=<kubernetesObjectTag>
+
+RUST_SERVER_PORT=8020
+RUST_SERVER_HOST=<kubernetesObjectTag>
+```
+
+```bash
+export GRPC_CLIENT_PORT=8000 \
+export GRPC_CLIENT_HOST=localhost \
+export GRPC_SERVER_PORT=8010 \
+export GRPC_SERVER_HOST=localhost \
+export RUST_SERVER_PORT=8020 \
+export RUST_SERVER_HOST=localhost
+```
