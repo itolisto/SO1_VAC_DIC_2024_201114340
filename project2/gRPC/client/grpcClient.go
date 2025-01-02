@@ -27,6 +27,7 @@ type courserecord struct {
 
 var (
     opts = []grpc.DialOption{ grpc.WithTransportCredentials(insecure.NewCredentials()) }
+    grpcClientUrl = fmt.Sprintf("%s:%s", os.Getenv("GRPC_CLIENT_HOST"), os.Getenv("GRPC_CLIENT_PORT"))
     grpcServerUrl = fmt.Sprintf("%s:%s", os.Getenv("GRPC_SERVER_HOST"), os.Getenv("GRPC_SERVER_PORT"))
     ctx = context.Background()
     rustServerUrl = fmt.Sprintf("http://%s:%s", os.Getenv("RUST_SERVER_HOST"), os.Getenv("RUST_SERVER_PORT"))
@@ -111,5 +112,5 @@ func main() {
     router.GET("/", allGood)
     router.POST("/course", postCourse)
 
-    router.Run("localhost:8000")
+    router.Run(grpcClientUrl)
 }
