@@ -10,7 +10,7 @@ class PostGradesTest(HttpUser):
       grades = json.load(file)
     
     for _ in range(len(grades)):
-      response = self.client.post("/login", json=grades.pop(), name="/gradePost")
+      response = self.client.post("http://localhost:8000/grade", json=grades.pop(), name="/gradePost")
       print(response.text)
       print(response.status_code)
       time.sleep(random.choice([1,2]))
