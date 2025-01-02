@@ -1,70 +1,69 @@
-# Description
-In this project we are going to use Locust(python library) to send traffic to a Kubernetes Ingress controller which
-is a Kubernetes service that has Linkerd installed, we will configure 2 routes using Linkerd, each will receive 50% 
-of the traffic, both will transfer data to a database. First route will be sending traffic to a gRCP client written 
-in Golang that sends it to a gRCP server written in Golang as well, this server has a connection to a Mongo data base
-and writes it. Second route is written in Rust, is server that is connected to a redis and the mongo database it writes
-the information received to both databases. Each of these 'routes' will be a Kubernetes deployment object, and will have
-a minimun of 1 and maximun of 3 replicas and the CPU usage should not be more than 50%. The data that is going to be 
-transmitted is collegue students notes, so we will display those notes by connecting a Grafana server to the databases 
+# Descripción
+En este proyecto utilizaremos Locust (biblioteca de Python) para enviar tráfico a un controlador de Ingress de Kubernetes, que es un servicio de Kubernetes con Linkerd instalado. Configuraremos 2 rutas usando Linkerd, cada una recibirá el 50% del tráfico y ambas transferirán datos a una base de datos. 
 
-# Instructions
+La primera ruta enviará tráfico a un cliente gRPC escrito en Golang que lo redirigirá a un servidor gRPC, también escrito en Golang. Este servidor tendrá una conexión con una base de datos MongoDB y escribirá los datos allí. La segunda ruta estará escrita en Rust; será un servidor conectado tanto a una base de datos Redis como a MongoDB, escribiendo la información recibida en ambas bases de datos. 
 
-## Create Courses Sample Json
+Cada una de estas "rutas" será un objeto de despliegue de Kubernetes (Deployment), con un mínimo de 1 réplica y un máximo de 3, y el uso de CPU no debe superar el 50%. Los datos transmitidos serán notas de estudiantes universitarios, y las visualizaremos conectando un servidor Grafana a las bases de datos.
 
-1. First we need to generate data in the following format using JSON, we will generate a 'pool' of fake entries using Python in `generator.py`
+# Instrucciones
+
+## Crear un JSON de ejemplo de Cursos
+
+1. Primero necesitamos generar datos en el siguiente formato usando JSON. Generaremos un 'pool' de entradas ficticias utilizando Python en un archivo llamado `generator.py`:
 
 ```json
 {
   "curso": "SO1",
- "facultad": "ingenieria",
- “carrera: “sistemas”,
- "region”:”NORTE”
+  "facultad": "ingenieria",
+  "carrera": "sistemas",
+  "region": "NORTE"
 }
 ```
 
-2. We need to start an python virtual environment to encapsulate our projects Python dependencies, so see [this](https://docs.python.org/3/library/venv.html#creating-virtual-environments) documentation to follow the steps. But basically if you're using after Python 3.5
-we should use the `venv` application to create these environments.
+2. Inicia un entorno virtual de Python para encapsular las dependencias del proyecto. Consulta [esta](https://docs.python.org/3/library/venv.html#creating-virtual-environments) documentación para los pasos detallados. Básicamente, si usas Python 3.5 o superior, utiliza la aplicación `venv` para crear entornos virtuales.
 
-3. Create the Python environment, run on CLI `python -m venv <path_to_store_environment>` I actually move to the directory I want to store it in and run `python -m venv venv`, this creates the directoy and the venv
+3. Crea el entorno virtual ejecutando en la terminal: `python -m venv <path_donde_guardar_el_entorno>`. Por ejemplo, si estás en el directorio deseado, usa `python -m venv venv`. Esto crea el directorio y el entorno virtual.
 
-4. Then as indicated [here](https://docs.python.org/3/library/venv.html#how-venvs-work) activate your venv, since I'm using git bash in Windows I just run in CLI `source venv/scripts/activate`, if you take a look this is a combination of the bash/zsh and cmd.exe/PowerShell commands
+4. Activa tu entorno virtual según la documentación [aqui](https://docs.python.org/3/library/venv.html#how-venvs-work). En Windows, si usas Git Bash, ejecuta `source venv/scripts/activate`. Consulta la combinación de comandos para bash/zsh y cmd.exe/PowerShell en la guía vinculada.
 
-5. We wrote the courses generator file using "json", "random" and "io" libraries. After you create this Python file "gradesJsonGenerator.py" run it using `python gradesJsonGenerator.py`, you will get a json with sample grades
+5. Escribe el archivo generador de cursos usando las bibliotecas "json", "random" e "io". Una vez creado el archivo Python llamado "gradesJsonGenerator.py", ejecútalo con `python gradesJsonGenerator.py`. Obtendrás un JSON con notas de ejemplo.
 
-## Set up Locust
+## Configurar Locust
 
-1. Install Locust following the [official documentation](https://docs.locust.io/en/stable/installation.html). Basically just do `pip install locust`
+1. Instala Locust siguiendo la [documentación oficial](https://docs.locust.io/en/stable/installation.html). Básicamente, ejecuta: `pip install locust`.
 
-2. Write the Locust test in file named "locustfile.py", this code will be basically be doing, in our case, post requests to the Ingress controller. Follow the [official documentation](https://docs.locust.a/en/stable/quickstart.html) and for further customization [check here](https://docs.locust.io/en/stable/writing-a-locustfile.html#). 
+2. Escribe el archivo de prueba de Locust llamado "locustfile.py". Este archivo realizará, en nuestro caso, solicitudes POST al controlador de Ingress. Consulta la [guía rápida](https://docs.locust.a/en/stable/quickstart.html) y para personalizaciones adicionales revisa [aquí](https://docs.locust.io/en/stable/writing-a-locustfile.html#).
 
-3. Run the locust tasks in the locust file, in our case we are reading the generated json that contains the students grades. You have two options if you actually named your file "locustfile.py" just run command `locust` on the cli in the same directory as the file or if you name it differently or you are running in it from a different directoy run `locust -f <path_to_locust_file>`
+3. Ejecuta las tareas de Locust leyendo el JSON generado con las notas de los estudiantes. Si el archivo se llama "locustfile.py", simplemente ejecuta `locust` en la misma carpeta. Si lo nombraste de otra forma o estás en otro directorio, usa `locust -f <ruta_al_archivo_locust>`.
 
-3. Now you can check access the Locust server to see the requests that are being made using the [web interface](https://docs.locust.io/en/stable/quickstart.html#locust-s-web-interface) running in `http://localhost:8089`
+4. Accede a la interfaz web de Locust para monitorear las solicitudes realizadas en http://localhost:8089.
 
-## Set up Deployments
+## Configurar Deployments
 
-### Golang gRCP client and server along Rust Server/Redis client(First Deployment)
-Basically both are server but the one in the middle is both, client and REST API server. The one that will receive requests from the ingress controller is both. It is an REST API server because it has an 'endpoint' that recieves the grade from Locust that is sending posts request to the it and is a client because it then forwards the information to the following container which is another gRCP server but this one is connected to the Mongo database. We will be using [gRPC's official documentation](https://grpc.io/docs/languages/go/basics/) to create a service in Golang
+Cliente y servidor gRPC en Golang junto al servidor REST en Rust (Primer Deployment)
+Tanto el servidor Golang como el de Rust actúan como servidores, pero el primero en la cadena también funciona como cliente. El servidor REST API recibe las solicitudes del controlador Ingress y las reenvía al servidor gRPC que está conectado a MongoDB.
 
-#### Create REST API-gRPC Client Server
-We'll follow [official documentation]{https://go.dev/doc/tutorial/web-service-gin} tutorial to create the REST API using Golang. We assume you've installed Golang
+### Crear el servidor REST API y cliente gRPC
 
-1. Create Golang module in the directory where your service code will live, run `go mod init grades/rest-service`
+Utilizaremos la [documentación oficial de gRPC](https://grpc.io/docs/languages/go/basics/) para crear un servicio en Golang.
 
-2. Create the Endpoint following the documentation, our REST API server is inside gRPC/client/grpcClient.go
+1. Crea un módulo en Golang en el directorio del servicio con `go mod init grades/rest-service`.
 
-3. Run `go get .` to add gin module as a dependency to our module.
+2. Define un endpoint siguiendo la documentación de Gin. El servidor REST API estará en [grpcClient.go](./gRPC/client/grpcClient.go).
 
-3. Set environment variables
+3. Instala las dependencias con `go get .`.
+
+4. Configura las variables de entorno necesarias:
+
 ```bash
 export GRPC_CLIENT_PORT=8000 \
 export GRPC_CLIENT_HOST=localhost
 ```
 
-4. Run the server with `go run .`
+5. Ejecuta el servidor con `go run .`.
 
-5. You can test it manually on your command line with `curl http://localhost:8000/` or the command below. You can also try it with Locust but make sure to change correct IP address, port and endpoint and then just run command `locust` with the venv activated and from the directoy of you locutsfile
+6. Puedes probarlo manualmente en tu línea de comandos con `curl http://localhost:8000/` o el comando que se muestra a continuación. También puedes probarlo con Locust, pero asegúrate de cambiar la dirección IP, el puerto y el endpoint correctos, y luego simplemente ejecuta el comando `locust` con el entorno virtual activado y desde el directorio donde se encuentra tu archivo de Locust.
+
 ```bash
 curl http://localhost:8000/course \
     --include \
@@ -73,49 +72,64 @@ curl http://localhost:8000/course \
     --data '{"curso": "ANP", "facultad": "Ingenieria", "carrera": "Arte", "region": "METROPOLITANA"}'
 ```
 
-6. Now I need to follow the gRPC official documentation in the description to create a gRPC client in this same server. As indicated there, we are going to generate the code using protocol buffers. To do that in Golang we need to install protocol buffers compiler and a Go plugin using [this guide](https://grpc.io/docs/languages/go/quickstart/#prerequisites). Download the proper architecture file from GitHub as indicated in the instructions, Create a directory wherever you want and copy the downloaded content, now add the "bin" folder to the `PATH` variable(in MacOs and Linux that is your .bash or .zsh file). 
+7. Ahora necesitas seguir la documentación oficial de gRPC en la descripción para crear un cliente gRPC en este mismo servidor. Como se indica allí, vamos a generar el código usando Protocol Buffers. Para hacerlo en Golang, necesitas instalar el compilador de Protocol Buffers y un complemento de Go utilizando [esta guía](https://grpc.io/docs/languages/go/quickstart/#prerequisites). Descarga el archivo adecuado para tu arquitectura desde GitHub, como se indica en las instrucciones. Crea un directorio en cualquier ubicación que prefieras y copia el contenido descargado. Luego, añade la carpeta "bin" a la variable de entorno `PATH` (en macOS y Linux, esto se hace en el archivo .bash o .zsh).
 
-7. Create a new environment variable, either a user or system variable, called "GOBIN" pointing to the directory you want the Golang plugins to be installed in and then add it to your "PATH" variable(I'm using windows, if you are on MacOs or Linux add it to your .bash or .zsh file). 
+8. Crea una nueva variable de entorno, ya sea como variable de usuario o del sistema, llamada "GOBIN" apuntando al directorio donde deseas que se instalen los complementos de Golang, y luego añádelo a tu variable PATH (en mi caso, estoy usando Windows; si estás en macOS o Linux, añádelo a tu archivo .bash o .zsh).
 
-8. Protocol buffers are a way to define a service and the structures of info that a service will receive and return if any. Install plugins, run `go install google.golang.org/protobuf/cmd/protoc-gen-go@latest` and `go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest`. If you want to know more about how services and the data types, called "message"(you can think of the "message" keyword as the "class" keyword in Java), are generated look [here](https://protobuf.dev/programming-guides/proto3/). Each "rpc" inside a "sevice" in a ".proto" file is basically what an endpoint is in REST. Also see [here](https://protobuf.dev/reference/go/go-generated/#package) you need to define a `go_package` option in the ".proto" file. After all this is ready, from the directory where you created the ".proto" file, in our case is "gRPC/ProtoBuffer, just run:
+9. Los Protocol Buffers son una forma de definir un servicio y las estructuras de información que un servicio recibirá y devolverá (si corresponde). Instala los complementos ejecutando los siguientes comandos:
+
+```bash
+go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+```
+
+Si quieres saber más sobre cómo se generan los servicios y los tipos de datos (llamados "message", que puedes pensar como el equivalente a la palabra clave "class" en Java), consulta [aquí](https://protobuf.dev/programming-guides/proto3/). Cada "rpc" dentro de un "service" en un archivo .proto es básicamente lo que un endpoint es en REST. Además, consulta [aquí](https://protobuf.dev/reference/go/go-generated/#package), donde se explica que debes definir una opción `go_package` en el archivo .proto.
+
+Una vez que todo esté listo, desde el directorio donde creaste el archivo .proto (en este caso, "gRPC/ProtoBuffer"), simplemente ejecuta:
+
 ```bash
 protoc --go_out=. --go_opt=paths=source_relative \
     --go-grpc_out=. --go-grpc_opt=paths=source_relative \
     ./courses.proto
 ```
 
-9. Now we just follow the gRPC documentation to create the client. My implementation is in "gRPC/client/grpcClient.go"
+10. Ahora solo necesitas seguir la documentación de gRPC para crear el cliente. Mi implementación se encuentra en [grpcClient.go](./gRPC/client/grpcClient.go).
 
-10. We will add some logic to do an http post request to a Rust REST API later
+11. Más adelante, añadiremos algo de lógica para realizar una solicitud HTTP POST a una API REST en Rust.
 
-#### Create gRPC Server
-This node is an gRPC server that receives the notes and forwards them to a Kafka queue. First we are just going to implement gRPC server following the documentation previously mentioned. I created the implementation file in "gRPC/server/server.go"
+### Crear Servidor gRPC
 
-If you want to test these servers, and clients run them from a different CLI each with `go run .` from the directory where each file lives and again you can run the curl command above. You also have to define two environment variables. If you are on bash or zshell you just run the following commands to create a temporary env variable
+Este nodo es un servidor gRPC que recibe las notas y las reenvía a una cola de Kafka. Primero, simplemente vamos a implementar el servidor gRPC siguiendo la documentación mencionada anteriormente. Creé el archivo de implementación en [server.go](./gRPC/server/server.go).
+
+Si deseas probar estos servidores y clientes, ejecútalos desde una terminal diferente cada uno, usando `go run .` desde el directorio donde se encuentra cada archivo. Además, puedes ejecutar el comando curl mostrado anteriormente. También necesitas definir dos variables de entorno. Si estás usando Bash o Zsh, puedes crear variables de entorno temporales ejecutando los siguientes comandos:
+
 ```bash
-export GRPC_SERVER_PORT=8010 \
-echo $GRPC_SERVER_PORT \
-GRPC_SERVER_HOST=localhost \
+export GRPC_SERVER_PORT=8010
+echo $GRPC_SERVER_PORT
+export GRPC_SERVER_HOST=localhost
 echo $GRPC_SERVER_HOST
 ```
-We will come back to add logic to be able to send the courses info a Kafka queue
 
-#### Rust Server/Redis Client
-This node will be receiving courses using a Rust REST API
+Regresaremos más adelante para añadir la lógica necesaria para enviar la información de los cursos a una cola de Kafka.
 
-1. Since I'm using Windows I went over [this](https://learn.microsoft.com/en-us/windows/dev-environment/rust/overview#the-pieces-of-the-rust-development-toolsetecosystem) documentation to get familiar with Rust terms and [this](https://learn.microsoft.com/en-us/windows/dev-environment/rust/setup) documentation to set up development environment for Rust, basically in windows you have to install C++ build tools, then you'll be able to install rust from their website. 
+### Servidor Rust/Cliente Redis
 
-2. I'm going to use "actix web" framework to create a web server with a REST API following their [official documentation](https://actix.rs/docs/getting-started/) and to use [JSON](https://actix.rs/docs/extractors#json)
+Este nodo recibirá cursos utilizando una API REST creada con Rust.
 
-3. Create the environment variables using `export`
+1. Como estoy usando Windows, consulté [esta documentación](https://learn.microsoft.com/en-us/windows/dev-environment/rust/overview#the-pieces-of-the-rust-development-toolsetecosystem) para familiarizarme con los términos de Rust y [esta otra](https://learn.microsoft.com/en-us/windows/dev-environment/rust/setup) para configurar el entorno de desarrollo para Rust. Básicamente, en Windows necesitas instalar las herramientas de compilación de C++ antes de poder instalar Rust desde su sitio web oficial.
+
+2. Voy a usar el framework "actix web" para crear un servidor web con una API REST siguiendo su [documentación oficial](https://actix.rs/docs/getting-started/), además de usar [JSON](https://actix.rs/docs/extractors#json) para manejar los datos.
+
+3. Crea las variables de entorno utilizando `export`:
+
 ```bash
-export RUST_SERVER_HOST=localhost \
+export RUST_SERVER_HOST=localhost
 export RUST_SERVER_PORT=8020
 ```
 
-4. Run the server `cargo run`
+4. Ejecuta el servidor con `cargo run`.
 
-5. You can test it with the command:
+5. Puedes probarlo usando el siguiente comando:
 ```bash
 curl http://localhost:8020/course \
     --include \
@@ -124,21 +138,27 @@ curl http://localhost:8020/course \
     --data '{"curso": "ANP", "facultad": "Ingenieria", "carrera": "Arte", "region": "METROPOLITANA"}'
 ```
 
-6. Now in the gRPC client on the previous section add http post request to this server
+6. Ahora, en el cliente gRPC de la sección anterior, agrega una solicitud HTTP POST hacia este servidor.
 
-#### Set up Redis Client in Rust REST API server
+### Configurar Cliente Redis en el Servidor de la API REST de Rust
 
-1. First we are going to create a Redis database Docker container using the Bitmani's image, see [here](https://hub.docker.com/r/bitnami/redis) for info on how to set it up. Basically, assuming you have docker desktop installed and running, run bellow command(6379 is default port). optionally you can use the official [redis alpine version](https://github.com/docker-library/docs/tree/master/redis) with the image `redis:8.0-M02-alpine3.20`, the volume would be `-v /docker/host/dir:/data`
+1. Primero, vamos a crear un contenedor Docker para la base de datos Redis utilizando la imagen de Bitnami. Consulta [aquí](https://hub.docker.com/r/bitnami/redis) para obtener más información sobre cómo configurarlo. Básicamente, asumiendo que tienes Docker Desktop instalado y en ejecución, ejecuta el siguiente comando (6379 es el puerto predeterminado). Opcionalmente, puedes usar la versión oficial [redis alpine](https://github.com/docker-library/docs/tree/master/redis) con la imagen `redis:8.0-M02-alpine3.20`. El volumen sería `-v /docker/host/dir:/data`.
+
 ```bash
 docker run --rm -d -it \
     --name=redis-server \
     -v redis-persistence:/bitnami/redis/data \
-    -e REDIS_PASSWORD=course -e REDIS_MASTER_PASSWORD=course   \
+    -e REDIS_PASSWORD=course -e REDIS_MASTER_PASSWORD=course \
     -p 6379:6379 \
     bitnami/redis:latest
 ```
 
-2. Now we will set up the Redis client using [actix-extras/actix-session](https://github.com/actix/actix-extras) rust library. In the root directory of your server run `cargo add actix-session --features=redis-session`
+2. Ahora configuraremos el cliente Redis utilizando la biblioteca Rust [actix-extras/actix-session](https://github.com/actix/actix-extras). En el directorio raíz de tu servidor, ejecuta el siguiente comando para agregar la dependencia:
+```bash
+cargo add actix-session --features=redis-session
+```
+
+3. Define las siguientes variables de entorno necesarias para el cliente Redis y otros servicios en tu configuración (por ejemplo, en un archivo `.env` o directamente en tu entorno):
 
 ```bash
 GRPC_CLIENT_PORT=8000 
@@ -153,6 +173,8 @@ RUST_REDIS_PORT=6379
 RUST_REDIS_HOST=<kubernetesObjectTag>
 ```
 
+4. Si deseas configurar las variables de entorno temporalmente en Bash o Zsh, utiliza el siguiente comando:
+
 ```bash
 export GRPC_CLIENT_PORT=8000 \
 export GRPC_CLIENT_HOST=localhost \
@@ -163,4 +185,3 @@ export RUST_SERVER_HOST=localhost \
 export RUST_REDIS_PORT=6379 \
 export RUST_REDIS_HOST=localhost
 ```
-
