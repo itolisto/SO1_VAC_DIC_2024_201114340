@@ -12,12 +12,12 @@ import (
     pb "usac.sopes1/grpc/ProtoBuffer"
 )
 
-type gradesServer struct {
-    pb.UnimplementedGradeServer
+type courseServer struct {
+    pb.UnimplementedCourseServer
 }
 
-func (s *gradesServer) PostGrade(_ context.Context, grade *pb.GradeRecord) (*pb.GradeResponse, error) {
-    return &pb.GradeResponse{ Response: "gRPC server received grade"}, nil
+func (s *courseServer) PostCourse(_ context.Context, grade *pb.CourseRecord) (*pb.CourseResponse, error) {
+    return &pb.CourseResponse{ Response: "gRPC server received course"}, nil
 }
 
 func main() {
@@ -30,9 +30,9 @@ func main() {
     log.Println("gRPC server started at ", url)
 
     grpcServer := grpc.NewServer()
-    serverImpl := &gradesServer{}
+    serverImpl := &courseServer{}
 
-    pb.RegisterGradeServer(grpcServer, serverImpl)
+    pb.RegisterCourseServer(grpcServer, serverImpl)
 
     grpcServer.Serve(listener)
 }

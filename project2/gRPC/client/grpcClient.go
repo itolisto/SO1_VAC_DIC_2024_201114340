@@ -15,30 +15,29 @@ import (
     pb "usac.sopes1/grpc/ProtoBuffer"
 )
 
-type graderecord struct {
-  Carnet  string  `json:"carnet"`
-  Nombre  string `json:"nombre"`
-  Curso   string `json:"curso"`
-  Nota    int32  `json:"nota"`
-  Semestre string `json:"semestre"`
-  Año     int32  `json:"año"`
+type courserecord struct {
+  Curso    string `json:"curso"`
+  Facultad string `json:"facultad"`
+  Carrera  string `json:"carrera"`
+  Region   string `json:"region"`
 }
 
 var (
     opts = []grpc.DialOption{ grpc.WithTransportCredentials(insecure.NewCredentials()) }
     serverUrl = fmt.Sprintf("%s:%s", os.Getenv("GRPC_SERVER_HOST"), os.Getenv("GRPC_SERVER_PORT"))
+    ctx = context.Background()
 )
 
 func allGood(c *gin.Context) {
-    c.String(http.StatusOK, "Grade REST API Server Ready")
+    c.String(http.StatusOK, "Cours REST API Server Ready")
 }
 
-func postGrade(c *gin.Context) {
-    var gradeRecord graderecord
+func postCourse(c *gin.Context) {
+    var courseRecord courserecord
 
-    if gradeDataError := c.BindJSON(&gradeRecord); gradeDataError != nil {
-        fmt.Println(gradeDataError)
-        c.String(http.StatusBadRequest, gradeDataError.Error())
+    if courseDataError := c.BindJSON(&courseRecord); courseDataError != nil {
+        fmt.Println(courseDataError)
+        c.String(http.StatusBadRequest, courseDataError.Error())
         return
     }
 
@@ -52,19 +51,17 @@ func postGrade(c *gin.Context) {
 
     defer conn.Close()
     
-    client := pb.NewGradeClient(conn)
+    client := pb.NewCourseClient(conn)
 
     log.Println("gRPC client connected to server", serverUrl)
 
    
 
-    response, responseErr := client.PostGrade(context.Background(), &pb.GradeRecord{ 
-        Carnet: gradeRecord.Carnet,
-        Nombre: gradeRecord.Nombre,
-        Curso: gradeRecord.Curso,
-        Nota: gradeRecord.Nota,
-        Semestre: gradeRecord.Semestre,
-        Year: gradeRecord.Año,
+    response, responseErr := client.PostCourse(ctx, &pb.CourseRecord{ 
+        Curso: courseRecord.Curso,
+        Facultad: courseRecord.Facultad,
+        Carrera: courseRecord.Carrera,
+        Region: courseRecord.Region,
     })
 
     if responseErr != nil {
@@ -80,7 +77,7 @@ func postGrade(c *gin.Context) {
 func main() {
     router := gin.Default()
     router.GET("/", allGood)
-    router.POST("/grade", postGrade)
+    router.POST("/course", postCourse)
 
     router.Run("localhost:8000")
 }

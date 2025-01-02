@@ -16,12 +16,10 @@ transmitted is collegue students notes, so we will display those notes by connec
 
 ```json
 {
-  "carnet": 231565,
-  "nombre": "Alumno 1",
   "curso": "SO1",
-  "nota": 90,
-  "semestre": "2S",
-  "year": 2023
+ "facultad": "ingenieria",
+ “carrera: “sistemas”,
+ "region”:”NORTE”
 }
 ```
 
@@ -62,11 +60,11 @@ We'll follow [official documentation]{https://go.dev/doc/tutorial/web-service-gi
 
 5. You can test it manually on your command line with `curl http://localhost:8000/` or the command below. You can also try it with Locust but make sure to change correct IP address, port and endpoint and then just run command `locust` with the venv activated and from the directoy of you locutsfile
 ```bash
-curl http://localhost:8000/grade \
+curl http://localhost:8000/course \
     --include \
     --header "Content-Type: application/json" \
     --request "POST" \
-    --data '{"carnet": "202364507", "nombre": "Mario Boch", "curso": "BD1", "nota": 100, "semestre": "2S", "año": 2024}'
+    --data '{"curso": "ANP", "facultad": "Ingenieria", "carrera": "Arte", "region": "METROPOLITANA"}'
 ```
 
 6. Now I need to follow the gRPC official documentation in the description to create a gRPC client in this same server. As indicated there, we are going to generate the code using protocol buffers. To do that in Golang we need to install protocol buffers compiler and a Go plugin using [this guide](https://grpc.io/docs/languages/go/quickstart/#prerequisites). Download the proper architecture file from GitHub as indicated in the instructions, Create a directory wherever you want and copy the downloaded content, now add the "bin" folder to the `PATH` variable(in MacOs and Linux that is your .bash or .zsh file). 
@@ -77,12 +75,13 @@ curl http://localhost:8000/grade \
 ```bash
 protoc --go_out=. --go_opt=paths=source_relative \
     --go-grpc_out=. --go-grpc_opt=paths=source_relative \
-    ./grades.proto
+    ./courses.proto
 ```
 
 9. Now we just follow the gRPC documentation to create the client. My implementation is in "gRPC/client/grpcClient.go"
 
-### 
+### Create gRPC Server
+This node will be communicating with 
 
 
 GRPC_SERVER_PORT = 8010

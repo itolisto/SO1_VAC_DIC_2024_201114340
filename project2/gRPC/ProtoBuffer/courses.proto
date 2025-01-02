@@ -1,0 +1,18 @@
+syntax = "proto3";
+option go_package = "./client";
+package client;
+
+service Course {
+  rpc PostCourse (CourseRecord) returns (CourseResponse);
+}
+
+message CourseRecord {
+  string curso = 1;
+  string facultad = 2;
+  string carrera = 3;
+  string region = 4;
+}
+
+message CourseResponse {
+  string response = 1;
+}

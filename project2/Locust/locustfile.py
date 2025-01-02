@@ -1,16 +1,16 @@
 import time, json, random
 from locust import HttpUser, task
 
-class PostGradesTest(HttpUser):
+class PostCoursesTest(HttpUser):
 
   @task
   def post_grades(self):
-    grades = []
-    with open("grades.json", "r") as file:
-      grades = json.load(file)
+    courses = []
+    with open("courses.json", "r") as file:
+      courses = json.load(file)
     
-    for _ in range(len(grades)):
-      response = self.client.post("http://localhost:8000/grade", json=grades.pop(), name="/gradePost")
+    for _ in range(len(courses)):
+      response = self.client.post("http://localhost:8000/course", json=courses.pop(), name="/coursePost")
       print(response.text)
       print(response.status_code)
       time.sleep(random.choice([1,2]))
