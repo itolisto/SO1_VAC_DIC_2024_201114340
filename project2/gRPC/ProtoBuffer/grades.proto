@@ -1,4 +1,5 @@
-option go_package = "./";
+syntax = "proto3";
+option go_package = "./client";
 package client;
 
 service Grade {
@@ -6,9 +7,14 @@ service Grade {
 }
 
 message GradeRecord {
-  required bytes grade = 1;
+  string carnet = 1;
+  string nombre = 2;
+  string curso = 3;
+  int32 nota = 4;
+  string semestre = 5;
+  int32 year = 6;
 }
 
 message GradeResponse {
-  required string response = 1;
+  string response = 1;
 }

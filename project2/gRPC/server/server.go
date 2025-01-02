@@ -8,8 +8,6 @@ import (
     "fmt"
 
     "google.golang.org/grpc"
-    "google.golang.org/grpc/codes"
-    "google.golang.org/grpc/status"
 
     pb "usac.sopes1/grpc/ProtoBuffer"
 )
@@ -18,8 +16,8 @@ type gradesServer struct {
     pb.UnimplementedGradeServer
 }
 
-func (s *gradesServer) PostGrade(context.Context, *pb.GradeRecord) (*pb.GradeResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method PostGrade not implemented")
+func (s *gradesServer) PostGrade(_ context.Context, grade *pb.GradeRecord) (*pb.GradeResponse, error) {
+    return &pb.GradeResponse{ Response: "gRPC server received grade"}, nil
 }
 
 func main() {
@@ -30,7 +28,6 @@ func main() {
     }
 
     log.Println("gRPC server started at ", url)
-
 
     grpcServer := grpc.NewServer()
     serverImpl := &gradesServer{}

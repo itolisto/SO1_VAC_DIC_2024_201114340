@@ -4,7 +4,7 @@
 // - protoc             v5.29.2
 // source: grades.proto
 
-package __
+package client
 
 import (
 	context "context"
