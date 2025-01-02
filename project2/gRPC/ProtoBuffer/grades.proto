@@ -1,0 +1,14 @@
+option go_package = "./";
+package client;
+
+service Grade {
+  rpc PostGrade (GradeRecord) returns (GradeResponse);
+}
+
+message GradeRecord {
+  required bytes grade = 1;
+}
+
+message GradeResponse {
+  required string response = 1;
+}
