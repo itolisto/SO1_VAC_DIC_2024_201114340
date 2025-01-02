@@ -1,4 +1,4 @@
-use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder, Result};
+use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 use serde::Deserialize;
 use std::env;
 
@@ -16,8 +16,8 @@ async fn hello() -> impl Responder {
 }
 
 #[post("/course")]
-async fn course(course: web::Json<Course>) -> Result<String> {
-    Ok(format!("actix, course received: {} {} {} {}", course.curso, course.facultad, course.carrera, course.region))
+async fn course(course: web::Json<Course>) -> impl Responder {
+    HttpResponse::Ok().body("actix, course received")
 }
 
 #[actix_web::main]
