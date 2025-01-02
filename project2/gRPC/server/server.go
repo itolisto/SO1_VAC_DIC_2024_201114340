@@ -19,7 +19,7 @@ var (
 
 	config          = sarama.NewConfig()
 	producer        sarama.AsyncProducer
-	kafkaBrokerrUrl = fmt.Sprintf("%s:%s", os.Getenv("KAFKA_SERVER_HOST"), os.Getenv("KAFKA_SERVER_PORT"))
+	kafkaBrokerUrl = fmt.Sprintf("%s:%s", os.Getenv("KAFKA_SERVER_HOST"), os.Getenv("KAFKA_SERVER_PORT"))
 )
 
 type courseServer struct {
@@ -133,7 +133,7 @@ func main() {
 	config.Net.MaxOpenRequests = 1
 	config.Producer.Return.Successes = true
 
-	localProducer, err := sarama.NewAsyncProducer([]string{kafkaBrokerrUrl}, config)
+	localProducer, err := sarama.NewAsyncProducer([]string{kafkaBrokerUrl}, config)
 
 	if err != nil {
 		msg := fmt.Sprintf("gRPC server kafka transaction producer error: %v", err)
