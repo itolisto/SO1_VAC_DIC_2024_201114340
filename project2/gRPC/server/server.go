@@ -8,10 +8,10 @@ import (
 	"os"
 	"sync"
 	"time"
-
 	"google.golang.org/grpc"
 
 	"github.com/IBM/sarama"
+        "google.golang.org/protobuf/encoding/protojson"
 
 	pb "usac.sopes1/grpc/ProtoBuffer"
 )
@@ -56,7 +56,17 @@ func (s *courseServer) PostCourse(_ context.Context, grade *pb.CourseRecord) (*p
 	}
 
 	time.Sleep(50 * time.Microsecond)
-	localProducer.Input() <- &sarama.ProducerMessage{Topic: topic, Key: nil, Value: sarama.StringEncoder(grade.Curso)}
+
+	// parse protocol buffer to json
+	jsonData, err := protojson.Marshal(grade)
+        if err != nil {
+            return nil, fmt.Errorf("failed to marshal grade to JSON: %w", err)
+        }
+
+        // Print or use the JSON data
+        fmt.Println(string(jsonData))
+
+	localProducer.Input() <- &sarama.ProducerMessage{Topic: topic, Key: nil, Value: sarama.ByteEncoder(jsonData)}
 
 	localProducer.Close()
 
